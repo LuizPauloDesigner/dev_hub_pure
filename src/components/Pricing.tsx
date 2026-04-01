@@ -1,0 +1,299 @@
+import { useState, useEffect } from 'react';
+import { useApp } from '@/contexts/AppContext';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Calculator, DollarSign, FileSpreadsheet } from 'lucide-react';
+import { toast } from 'sonner';
+
+export const Pricing = () => {
+  const { state, updatePricingData } = useApp();
+  
+  const [fixedCosts, setFixedCosts] = useState(state.pricingData.fixedCosts.toString());
+  const [desiredSalary, setDesiredSalary] = useState(state.pricingData.desiredSalary.toString());
+  const [taxesPercent, setTaxesPercent] = useState(state.pricingData.taxesPercent.toString());
+  const [hoursPerDay, setHoursPerDay] = useState(state.pricingData.hoursPerDay.toString());
+  const [daysPerMonth, setDaysPerMonth] = useState(state.pricingData.daysPerMonth.toString());
+  
+  const [projectHours, setProjectHours] = useState('40');
+  const [complexityMultiplier, setComplexityMultiplier] = useState('1.0');
+  const [baseCost, setBaseCost] = useState('0');
+  const [selectedTechSheet, setSelectedTechSheet] = useState('');
+
+  const calculateIdealHourlyRate = () => {
+    const costs = parseFloat(fixedCosts) || 0;
+    const salary = parseFloat(desiredSalary) || 0;
+    const taxes = parseFloat(taxesPercent) || 0;
+    const hours = parseFloat(hoursPerDay) || 1;
+    const days = parseFloat(daysPerMonth) || 1;
+
+    const monthlyRevenue = salary + costs;
+    const monthlyRevenueWithTaxes = monthlyRevenue / (1 - taxes / 100);
+    const monthlyHours = hours * days;
+    
+    const minHourlyRate = monthlyRevenue / monthlyHours;
+    const idealHourlyRate = monthlyRevenueWithTaxes / monthlyHours;
+
+    return {
+      minHourlyRate: minHourlyRate || 0,
+      idealHourlyRate: idealHourlyRate || 0,
+    };
+  };
+
+  const { minHourlyRate, idealHourlyRate } = calculateIdealHourlyRate();
+
+  const handleSaveHourlyRate = () => {
+    updatePricingData({
+      fixedCosts: parseFloat(fixedCosts) || 0,
+      desiredSalary: parseFloat(desiredSalary) || 0,
+      taxesPercent: parseFloat(taxesPercent) || 0,
+      hoursPerDay: parseFloat(hoursPerDay) || 8,
+      daysPerMonth: parseFloat(daysPerMonth) || 22,
+      idealHourlyRate,
+    });
+    toast.success('Valor/Hora Ideal salvo com sucesso!');
+  };
+
+  const calculateProjectPrice = () => {
+    const hours = parseFloat(projectHours) || 0;
+    const multiplier = parseFloat(complexityMultiplier) || 1;
+    const cost = parseFloat(baseCost) || 0;
+    return (state.pricingData.idealHourlyRate * hours * multiplier) + cost;
+  };
+
+  const handleImportFromTechSheet = () => {
+    if (!selectedTechSheet) return;
+    const sheet = state.techSheets.find(s => s.id === selectedTechSheet);
+    if (sheet) {
+      setBaseCost(sheet.custoPorUnidade.toFixed(2));
+      toast.success(`Custo base importado: R$ ${sheet.custoPorUnidade.toFixed(2)}`);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">Precificador de Serviços</h2>
+
+      {/* Calculadora de Valor/Hora */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="h-5 w-5" />
+            Calculadora de Valor/Hora
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Custos Fixos Mensais (R$)</Label>
+              <Input
+                type="number"
+                value={fixedCosts}
+                onChange={(e) => setFixedCosts(e.target.value)}
+                placeholder="Ex: 3000"
+                min="0"
+                step="0.01"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Aluguel, internet, luz, software, etc.
+              </p>
+            </div>
+
+            <div>
+              <Label>Salário Desejado (R$)</Label>
+              <Input
+                type="number"
+                value={desiredSalary}
+                onChange={(e) => setDesiredSalary(e.target.value)}
+                placeholder="Ex: 5000"
+                min="0"
+                step="0.01"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Quanto você quer ganhar por mês
+              </p>
+            </div>
+
+            <div>
+              <Label>Impostos (%)</Label>
+              <Input
+                type="number"
+                value={taxesPercent}
+                onChange={(e) => setTaxesPercent(e.target.value)}
+                placeholder="Ex: 15"
+                min="0"
+                max="100"
+                step="0.01"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                MEI, Simples Nacional, etc.
+              </p>
+            </div>
+
+            <div>
+              <Label>Horas por Dia</Label>
+              <Input
+                type="number"
+                value={hoursPerDay}
+                onChange={(e) => setHoursPerDay(e.target.value)}
+                placeholder="Ex: 8"
+                min="1"
+                max="24"
+                step="0.5"
+              />
+            </div>
+
+            <div>
+              <Label>Dias por Mês</Label>
+              <Input
+                type="number"
+                value={daysPerMonth}
+                onChange={(e) => setDaysPerMonth(e.target.value)}
+                placeholder="Ex: 22"
+                min="1"
+                max="31"
+                step="1"
+              />
+            </div>
+          </div>
+
+          <div className="border-t pt-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Valor/Hora Mínimo</p>
+                <p className="text-2xl font-bold">R$ {minHourlyRate.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Sem considerar impostos
+                </p>
+              </div>
+
+              <div className="bg-primary/10 p-4 rounded-lg border-2 border-primary">
+                <p className="text-sm text-muted-foreground mb-1">Valor/Hora Ideal</p>
+                <p className="text-2xl font-bold text-primary">R$ {idealHourlyRate.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Com impostos inclusos
+                </p>
+              </div>
+            </div>
+
+            <Button onClick={handleSaveHourlyRate} className="w-full mt-4">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Salvar Valor/Hora Ideal
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Calculadora de Projeto Fixo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Calculadora de Projeto Fixo
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {state.pricingData.idealHourlyRate === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">
+                Configure e salve seu Valor/Hora Ideal acima para usar esta calculadora
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Horas Estimadas</Label>
+                    <Input
+                      type="number"
+                      value={projectHours}
+                      onChange={(e) => setProjectHours(e.target.value)}
+                      placeholder="Ex: 40"
+                      min="0"
+                      step="0.5"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Multiplicador de Complexidade</Label>
+                    <Input
+                      type="number"
+                      value={complexityMultiplier}
+                      onChange={(e) => setComplexityMultiplier(e.target.value)}
+                      placeholder="Ex: 1.5"
+                      min="0.1"
+                      step="0.1"
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <Label className="flex items-center gap-2 mb-2">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Importar Custo Base da Ficha Técnica (Opcional)
+                  </Label>
+                  <div className="flex gap-2">
+                    <Select value={selectedTechSheet} onValueChange={setSelectedTechSheet}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecione uma ficha..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {state.techSheets.map((sheet) => (
+                          <SelectItem key={sheet.id} value={sheet.id}>
+                            {sheet.nomeProduto} - R$ {sheet.custoPorUnidade.toFixed(2)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleImportFromTechSheet} disabled={!selectedTechSheet}>
+                      Importar
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Custo Base (Materiais) - R$</Label>
+                  <Input
+                    type="number"
+                    value={baseCost}
+                    onChange={(e) => setBaseCost(e.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Custo de materiais ou produção
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-primary/10 p-6 rounded-lg border-2 border-primary">
+                <p className="text-sm text-muted-foreground mb-2">Valor Sugerido do Projeto</p>
+                <p className="text-3xl font-bold text-primary">
+                  R$ {calculateProjectPrice().toFixed(2)}
+                </p>
+                <div className="mt-4 text-sm text-muted-foreground space-y-1">
+                  <p>• Mão de obra: R$ {(state.pricingData.idealHourlyRate * parseFloat(projectHours || '0') * parseFloat(complexityMultiplier || '1')).toFixed(2)}</p>
+                  <p>• Custo base: R$ {parseFloat(baseCost || '0').toFixed(2)}</p>
+                  <p className="pt-2 border-t">• Horas: {projectHours}h × Valor/Hora: R$ {state.pricingData.idealHourlyRate.toFixed(2)} × {complexityMultiplier}x</p>
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="bg-muted/50 p-4 rounded-lg border">
+        <h3 className="font-semibold mb-2">💡 Dica</h3>
+        <p className="text-sm text-muted-foreground">
+          Ao salvar seu Valor/Hora Ideal, você pode vinculá-lo aos serviços do seu Catálogo 
+          nas Configurações. Assim, quando criar orçamentos, o preço será preenchido 
+          automaticamente com base neste valor!
+        </p>
+      </div>
+    </div>
+  );
+};

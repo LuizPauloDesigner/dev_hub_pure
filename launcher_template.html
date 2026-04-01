@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Launch Elite Dashboard on CodeSandbox</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0f172a;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #4f46e5;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>Elite Dashboard</h1>
+        <p>Clique abaixo para abrir o projeto completo no CodeSandbox (Ambiente Educacional liberado pelo Sophos).</p>
+
+        <form action="https://codesandbox.io/api/v1/sandboxes/define" method="POST" target="_blank">
+            <input type="hidden" name="parameters" id="parameters" />
+            <button type="submit" id="btn">Abrir no CodeSandbox 🚀</button>
+        </form>
+    </div>
+
+    <script type="module">
+        // Embed the payload here
+        import { getParameters } from 'https://cdn.jsdelivr.net/npm/codesandbox/lib/api/define.js';
+
+        // We'll read the json file content and embed it
+        const payload = PAYLOAD_PLACEHOLDER;
+
+        document.getElementById('parameters').value = getParameters(payload);
+    </script>
+</body>
+
+</html>
