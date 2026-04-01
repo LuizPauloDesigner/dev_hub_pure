@@ -8,7 +8,7 @@
     "build": "vite build",
     "build:frontend": "vite build",
     "install:all": "npm install && cd server && npm install",
-    "render-build": "npm install && npm run build:frontend && cd server && npm install",
+    "render-build": "npm install --include=dev && npm run build:frontend && cd server && npm install --include=dev",
     "start": "cd server && npm start",
     "lint": "eslint .",
     "preview": "vite preview"
