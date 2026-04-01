@@ -21,6 +21,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+console.log('[Startup] Starting server...');
+console.log(`[Startup] PORT: ${PORT}`);
+console.log(`[Startup] ALLOWED_ORIGINS: ${process.env.ALLOWED_ORIGINS || 'Not set (using localhost)'}`);
+
 // Middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -81,7 +85,14 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Database
-initDB();
+try {
+  console.log('[Startup] Initializing Database...');
+  initDB();
+  console.log('[Startup] Database initialized successfully.');
+} catch (error) {
+  console.error('[CRITICAL] Failed to initialize database:', error);
+  process.exit(1);
+}
 
 // Routes
 app.get('/', (req, res) => {
