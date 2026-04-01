@@ -9,6 +9,7 @@ import settingsRoutes from './routes/settings';
 import adminRoutes from './routes/admin';
 import organizationRoutes from './routes/organization';
 import helmet from 'helmet';
+import path from 'path';
 import { maintenanceMiddleware } from './middleware/maintenance';
 import { authMiddleware } from './middleware/auth';
 import { rateLimit } from 'express-rate-limit';
@@ -120,6 +121,18 @@ app.use('/api/entities', entityRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/org', organizationRoutes);
+
+// --- SERVING STATIC FRONTEND FROM ROOT DIST ---
+const distPath = path.join(__dirname, '..', '..', 'dist');
+
+// Serve static files from the build directory
+app.use(express.static(distPath));
+
+// For SPA routing: serve index.html for any non-API routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  res.sendFile(path.join(distPath, 'index.html'));
+});
 
 // Global Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
