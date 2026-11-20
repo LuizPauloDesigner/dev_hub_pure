@@ -58,6 +58,7 @@ import {
   HardDrive,
   History,
   Target,
+  Cpu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -104,6 +105,7 @@ const menuItems: MenuItem[] = [
   { id: 'assets', label: 'Assets', icon: HardDrive, category: 'business' },
   { id: 'activity', label: 'Atividade', icon: History, category: 'system' },
   { id: 'settings', label: 'Config', icon: Settings, category: 'system' },
+  { id: 'jarvis', label: 'JARVIS Mainframe', icon: Cpu, category: 'system' },
 ];
 
 const categoryLabels: Record<string, string> = {

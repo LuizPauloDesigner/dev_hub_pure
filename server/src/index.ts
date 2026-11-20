@@ -21,7 +21,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-console.log('[Startup] Starting server...');
+console.log('[Startup] Starting server...'); // Restart trigger
 console.log(`[Startup] PORT: ${PORT}`);
 console.log(`[Startup] ALLOWED_ORIGINS: ${process.env.ALLOWED_ORIGINS || 'Not set (using localhost)'}`);
 
@@ -140,9 +140,11 @@ const distPath = path.join(__dirname, '..', '..', 'dist');
 app.use(express.static(distPath));
 
 // For SPA routing: serve index.html for any non-API routes
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api')) return next();
-  res.sendFile(path.join(distPath, 'index.html'));
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    return res.sendFile(path.join(distPath, 'index.html'));
+  }
+  next();
 });
 
 // Global Error Handler

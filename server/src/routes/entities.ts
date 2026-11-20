@@ -13,7 +13,7 @@ const VALID_TYPES = [
     'budgets', 'serviceCatalog', 'stockMaterials', 'techSheets',
     'goals', 'habits', 'habitLogs', 'plannerDays',
     'notifications', 'wikiArticles', 'assets', 'activityLogs',
-    'wheelOfLife', 'moodPixels', 'dreamBoard', 'boards', 'boardElements'
+    'wheelOfLife', 'moodPixels', 'dreamBoard', 'boards', 'boardElements', 'boardConnections'
 ];
 
 const validateType = (req: any, res: Response, next: any) => {

@@ -135,6 +135,10 @@ export interface FinancialAccount {
   projectId: string;
   name: string;
   initialBalance: number;
+  type?: 'bank' | 'credit_card' | 'wallet';
+  creditLimit?: number;
+  closingDay?: number;
+  dueDay?: number;
   createdAt: string;
 }
 
@@ -158,13 +162,22 @@ export interface FinancialTransaction {
   id: string;
   projectId: string;
   date: string;
+  dueDate?: string;
+  supplier?: string;
   description: string;
   amount: number;
-  type: 'income' | 'expense';
-  categoryId: string;
-  accountId: string;
+  type: 'income' | 'expense' | 'transfer';
+  categoryId: string; // Optional for transfers potentially, but required for income/expense
+  accountId: string; // Source account
+  destinationAccountId?: string; // For transfers
   recurrence: 'never' | 'monthly' | 'yearly';
+  installments?: number; // Número total de parcelas
+  currentInstallment?: number; // Parcela atual (ex: 1, 2)
+  parentId?: string; // Agrupador lógico
   lastRecurrence?: string;
+  isPaid?: boolean;
+  receiptUrl?: string; // For attachments/receipts
+  notes?: string; // For advanced organization
   createdAt: string;
 }
 
@@ -566,6 +579,7 @@ interface AppContextType {
   updateFinancialBudget: (id: string, updates: Partial<FinancialBudget>) => void;
   deleteFinancialBudget: (id: string) => void;
   addFinancialTransaction: (transaction: Omit<FinancialTransaction, 'id' | 'createdAt'>) => void;
+  addFinancialTransactions: (transactions: Omit<FinancialTransaction, 'id' | 'createdAt'>[]) => void;
   updateFinancialTransaction: (id: string, updates: Partial<FinancialTransaction>) => void;
   deleteFinancialTransaction: (id: string) => void;
   setMusicPlayerVolume: (volume: number) => void;
@@ -713,7 +727,7 @@ const initialState: AppState = {
   },
   stockMaterials: [],
   techSheets: [],
-  enabledModules: ['dashboard', 'explorer', 'tutorial', 'wellness', 'musica', 'videos', 'favorites', 'notes', 'prompts', 'snippets', 'cheatsheet', 'kanban', 'checklists', 'passwords', 'contacts', 'orcamentos', 'precificador', 'estoque', 'fichatecnica', 'finance', 'diary', 'draft', 'settings', 'profile', 'billing', 'integrations', 'analytics', 'wiki', 'assets', 'activity', 'planner', 'boards'],
+  enabledModules: ['dashboard', 'explorer', 'tutorial', 'wellness', 'musica', 'videos', 'favorites', 'notes', 'prompts', 'snippets', 'cheatsheet', 'kanban', 'checklists', 'passwords', 'contacts', 'orcamentos', 'precificador', 'estoque', 'fichatecnica', 'finance', 'diary', 'draft', 'settings', 'profile', 'billing', 'integrations', 'analytics', 'wiki', 'assets', 'activity', 'planner', 'boards', 'jarvis'],
   notifications: [],
   integrations: [
     { id: 'github', provider: 'github', name: 'GitHub', description: 'Sincronize seus repositórios e gerencie issues diretamente do dashboard.', icon: 'Github', status: 'disconnected', category: 'dev', createdAt: new Date().toISOString() },
@@ -1374,10 +1388,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const addFinancialTransaction = (transaction: Omit<FinancialTransaction, 'id' | 'createdAt'>) => {
     const newTransaction: FinancialTransaction = {
       ...transaction,
-      id: Date.now().toString(),
+      id: Math.random().toString(36).substr(2, 9),
       createdAt: new Date().toISOString(),
     };
     setState(prev => ({ ...prev, financialTransactions: [...prev.financialTransactions, newTransaction] }));
+  };
+
+  const addFinancialTransactions = (transactions: Omit<FinancialTransaction, 'id' | 'createdAt'>[]) => {
+    const newTransactions: FinancialTransaction[] = transactions.map(t => ({
+      ...t,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+    }));
+    setState(prev => ({ ...prev, financialTransactions: [...prev.financialTransactions, ...newTransactions] }));
   };
 
   const updateFinancialTransaction = (id: string, updates: Partial<FinancialTransaction>) => {
@@ -1942,6 +1965,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     updateFinancialBudget,
     deleteFinancialBudget,
     addFinancialTransaction,
+    addFinancialTransactions,
     updateFinancialTransaction,
     deleteFinancialTransaction,
     setMusicPlayerVolume,

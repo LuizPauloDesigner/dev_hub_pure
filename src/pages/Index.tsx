@@ -42,6 +42,7 @@ import { AssetManager } from '@/components/AssetManager';
 import { ActivityLog } from '@/components/ActivityLog';
 import { Planner } from '@/components/Planner';
 import { Boards } from '@/components/Boards';
+import { JarvisMainframe } from '@/components/JarvisMainframe';
 
 // Component map for cleaner rendering
 const COMPONENT_MAP: Record<string, React.ComponentType> = {
@@ -77,6 +78,7 @@ const COMPONENT_MAP: Record<string, React.ComponentType> = {
   assets: AssetManager,
   activity: ActivityLog,
   boards: Boards,
+  jarvis: JarvisMainframe,
 };
 
 const MainContent = memo(() => {
