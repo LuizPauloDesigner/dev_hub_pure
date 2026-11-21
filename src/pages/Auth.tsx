@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Lock, Mail, UserPlus, LogIn, Github, KeyRound, ArrowRight, ShieldCheck, Building, User } from 'lucide-react';
+import { Lock, Mail, UserPlus, LogIn, Github, KeyRound, ArrowRight, ShieldCheck, Building, User, Sparkles } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -59,6 +59,20 @@ const Auth = () => {
     const [resetCode, setResetCode] = useState('');
     const [newPassword, setNewPassword] = useState('');
 
+    const handleLocalLogin = (customEmail?: string) => {
+        const userEmail = customEmail || email || 'dev@local.workspace';
+        const localUser = {
+            id: 'local_' + (userEmail ? userEmail.replace(/[^a-zA-Z0-9]/g, '_') : 'guest'),
+            email: userEmail,
+            name: userEmail.split('@')[0],
+            role: 'admin' as const,
+            plan: 'pro' as const,
+        };
+        login('local_token_' + Date.now(), localUser);
+        toast.success('Entrando em Modo Local (Armazenamento no Navegador / IndexedDB)!');
+        navigate('/');
+    };
+
     const handleForgotPassword = async () => {
         if (!resetEmail) return toast.error('Digite seu e-mail');
         setIsLoading(true);
@@ -68,11 +82,14 @@ const Auth = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail }),
             });
+            const contentType = res.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                throw new Error('Servidor offline ou ambiente estático. A recuperação por e-mail requer o servidor Node ativo.');
+            }
             const data = await res.json();
             if (res.ok) {
                 toast.success(data.message);
                 setResetStep(2);
-                // In dev, we can auto-fill the token if returned
                 if (data.dev_token) {
                     console.log('Dev Reset Token:', data.dev_token);
                     setResetCode(data.dev_token);
@@ -96,6 +113,10 @@ const Auth = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: resetEmail, token: resetCode, newPassword }),
             });
+            const contentType = res.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                throw new Error('Servidor offline ou ambiente estático.');
+            }
             const data = await res.json();
             if (res.ok) {
                 toast.success(data.message);
@@ -112,17 +133,36 @@ const Auth = () => {
     };
 
     const handleAuth = async (type: 'login' | 'register') => {
+        if (!email) {
+            return toast.error('Por favor, informe seu email');
+        }
         setIsLoading(true);
         try {
             const payload = type === 'login'
                 ? { email, password }
                 : { email, password, type: regType, companyName, companySlug, inviteToken };
 
-            const response = await fetch(`/api/auth/${type}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
+            let response: Response;
+            try {
+                response = await fetch(`/api/auth/${type}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+            } catch (netErr) {
+                // Servidor backend offline ou falha de conexão
+                toast.info('Servidor não detectado. Iniciando em Modo Local (IndexedDB)...');
+                handleLocalLogin(email);
+                return;
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                // Servidor retornou HTML (ex: página 404 do GitHub Pages ou erro de proxy)
+                toast.info('Ambiente estático (GitHub Pages) detectado. Iniciando em Modo Local...');
+                handleLocalLogin(email);
+                return;
+            }
 
             const data = await response.json();
 
@@ -134,7 +174,7 @@ const Auth = () => {
             toast.success(type === 'login' ? 'Bem-vindo de volta!' : 'Conta criada com sucesso!');
             navigate('/');
         } catch (error: any) {
-            toast.error(error.message);
+            toast.error(error.message || 'Erro na autenticação');
         } finally {
             setIsLoading(false);
         }
@@ -318,6 +358,14 @@ const Auth = () => {
                             <span className="bg-background px-2 text-muted-foreground">Ou continue com</span>
                         </div>
                     </div>
+                    <Button 
+                        type="button"
+                        variant="secondary" 
+                        className="w-full bg-primary/10 hover:bg-primary/20 text-foreground border border-primary/20 font-medium" 
+                        onClick={() => handleLocalLogin()}
+                    >
+                        <Sparkles className="mr-2 h-4 w-4 text-primary" /> Entrar em Modo Local (Sem Servidor / Offline)
+                    </Button>
                     <Button variant="ghost" className="w-full" disabled>
                         <Github className="mr-2 h-4 w-4" /> GitHub (Em breve)
                     </Button>
