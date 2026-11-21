@@ -112,18 +112,10 @@ const MainContent = memo(() => {
 MainContent.displayName = 'MainContent';
 
 const Index = () => {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const [isPlayerVisible, setIsPlayerVisible] = useState(() => {
     const saved = localStorage.getItem('mini-player-visible');
     return saved !== 'false';
   });
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      navigate('/auth');
-    }
-  }, [isAuthenticated, authLoading, navigate]);
 
   useEffect(() => {
     const checkVisibility = () => {

@@ -39,11 +39,26 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = '/api';
 
+const DEFAULT_USER: User = {
+    id: 'local_master_dev',
+    email: 'dev@puredev.local',
+    name: 'Pure Developer',
+    role: 'admin',
+    plan: 'pro',
+    sub_role: 'org_admin',
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
+    const [user, setUser] = useState<User>(() => {
+        try {
+            const saved = localStorage.getItem('auth_user');
+            if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return DEFAULT_USER;
+    });
+    const [token, setToken] = useState<string>(() => localStorage.getItem('auth_token') || 'local_direct_token');
     const [branding, setBranding] = useState<Branding | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
 
     const applyBranding = (data: Branding) => {
         if (data.primary_color) {
@@ -73,59 +88,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const updateProfile = async (updates: Partial<User>) => {
-        if (!token || !user) return;
-        try {
-            const res = await fetch('/api/auth/me', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(updates)
-            });
+        if (!user) return;
+        const newUser = { ...user, ...updates };
+        setUser(newUser);
+        localStorage.setItem('auth_user', JSON.stringify(newUser));
 
-            if (res.ok) {
-                const newUser = { ...user, ...updates };
-                setUser(newUser);
-                localStorage.setItem('auth_user', JSON.stringify(newUser));
+        if (token && token !== 'local_direct_token') {
+            try {
+                await fetch('/api/auth/me', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(updates)
+                });
+            } catch (error) {
+                console.error('Failed to update profile on backend:', error);
             }
-        } catch (error) {
-            console.error('Failed to update profile:', error);
         }
     };
 
     const updatePlan = async (plan: 'free' | 'pro' | 'team') => {
-        if (!token || !user) return;
-        try {
-            const res = await fetch('/api/auth/billing/plan', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ plan })
-            });
+        if (!user) return;
+        const newUser = { ...user, plan };
+        setUser(newUser);
+        localStorage.setItem('auth_user', JSON.stringify(newUser));
 
-            if (res.ok) {
-                const newUser = { ...user, plan };
-                setUser(newUser);
-                localStorage.setItem('auth_user', JSON.stringify(newUser));
+        if (token && token !== 'local_direct_token') {
+            try {
+                await fetch('/api/auth/billing/plan', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ plan })
+                });
+            } catch (error) {
+                console.error('Failed to update plan on backend:', error);
             }
-        } catch (error) {
-            console.error('Failed to update plan:', error);
         }
     };
 
     useEffect(() => {
         const savedUser = localStorage.getItem('auth_user');
-        if (savedUser && token) {
-            setUser(JSON.parse(savedUser));
+        if (savedUser) {
+            try {
+                setUser(JSON.parse(savedUser));
+            } catch (e) {}
         }
         setIsLoading(false);
     }, [token]);
 
     useEffect(() => {
-        if (user?.organization_id && token) {
+        if (user?.organization_id && token && token !== 'local_direct_token') {
             refreshBranding();
         } else {
             setBranding(null);
@@ -143,22 +160,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const logout = () => {
-        setToken(null);
-        setUser(null);
+        setUser(DEFAULT_USER);
+        setToken('local_direct_token');
         setBranding(null);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
-        db.clearAll().catch(err => console.error('Failed to clear DB on logout:', err));
     };
 
     return (
         <AuthContext.Provider value={{
             user,
             token,
-            isAuthenticated: !!token,
-            isAdmin: user?.role === 'admin',
-            isOrgAdmin: user?.sub_role === 'org_admin' || user?.sub_role === 'manager',
-            isLoading,
+            isAuthenticated: true,
+            isAdmin: true,
+            isOrgAdmin: true,
+            isLoading: false,
             branding,
             login,
             logout,
