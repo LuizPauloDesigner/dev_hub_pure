@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { db } from '@/services/db';
+import { getSupabaseClient, getSupabaseConfig, setSupabaseConfig, clearSupabaseConfig } from '@/services/supabaseClient';
+import { cloudSync } from '@/services/cloudSync';
+import { toast } from 'sonner';
 
-interface User {
+export interface User {
     id: string;
     email: string;
     name?: string | null;
@@ -24,12 +27,18 @@ interface AuthContextType {
     user: User | null;
     token: string | null;
     isAuthenticated: boolean;
+    isCloudConnected: boolean;
     isAdmin: boolean;
     isOrgAdmin: boolean;
     isLoading: boolean;
     branding: Branding | null;
     login: (token: string, user: User) => void;
     logout: () => void;
+    signInWithSupabase: (email: string, password: string) => Promise<void>;
+    signUpWithSupabase: (email: string, password: string, name?: string) => Promise<any>;
+    signOut: () => Promise<void>;
+    syncCloudNow: () => Promise<void>;
+    saveSupabaseKeys: (url: string, key: string) => void;
     refreshBranding: () => Promise<void>;
     updateProfile: (updates: Partial<User>) => Promise<void>;
     updatePlan: (plan: 'free' | 'pro' | 'team') => Promise<void>;
@@ -37,9 +46,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = '/api';
-
-const DEFAULT_USER: User = {
+export const DEFAULT_USER: User = {
     id: 'local_master_dev',
     email: 'dev@puredev.local',
     name: 'Pure Developer',
@@ -56,35 +63,168 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (e) {}
         return DEFAULT_USER;
     });
+
     const [token, setToken] = useState<string>(() => localStorage.getItem('auth_token') || 'local_direct_token');
     const [branding, setBranding] = useState<Branding | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isCloudConfigured, setIsCloudConfigured] = useState(getSupabaseConfig().isConfigured);
 
-    const applyBranding = (data: Branding) => {
-        if (data.primary_color) {
-            document.documentElement.style.setProperty('--primary', data.primary_color);
-            document.documentElement.style.setProperty('--ring', data.primary_color);
-            document.documentElement.style.setProperty('--accent', data.primary_color);
+    const isCloudConnected = user.id !== DEFAULT_USER.id && isCloudConfigured;
+
+    // Check Supabase session on startup
+    useEffect(() => {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            setIsLoading(false);
+            return;
+        }
+
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                const supaUser: User = {
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Dev',
+                    role: 'admin',
+                    plan: 'pro',
+                };
+                setUser(supaUser);
+                setToken(session.access_token);
+                localStorage.setItem('auth_user', JSON.stringify(supaUser));
+                localStorage.setItem('auth_token', session.access_token);
+
+                // Auto-sync from cloud on open
+                cloudSync.download(session.user.id, true);
+            }
+            setIsLoading(false);
+        }).catch(() => {
+            setIsLoading(false);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session?.user) {
+                const supaUser: User = {
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Dev',
+                    role: 'admin',
+                    plan: 'pro',
+                };
+                setUser(supaUser);
+                setToken(session.access_token);
+                localStorage.setItem('auth_user', JSON.stringify(supaUser));
+                localStorage.setItem('auth_token', session.access_token);
+                await cloudSync.download(session.user.id, true);
+            } else if (event === 'SIGNED_OUT') {
+                setUser(DEFAULT_USER);
+                setToken('local_direct_token');
+                localStorage.removeItem('auth_user');
+                localStorage.removeItem('auth_token');
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
+
+    // Realtime changes from other devices
+    useEffect(() => {
+        if (!isCloudConnected || user.id === DEFAULT_USER.id) return;
+        const unsubscribe = cloudSync.subscribe(user.id, () => {
+            // Updated from other device
+        });
+        return () => unsubscribe();
+    }, [user?.id, isCloudConnected]);
+
+    const saveSupabaseKeys = (url: string, key: string) => {
+        setSupabaseConfig(url, key);
+        setIsCloudConfigured(true);
+        toast.success('Chaves do Supabase salvas com sucesso!');
+    };
+
+    const signInWithSupabase = async (email: string, password: string) => {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            throw new Error('Supabase não configurado. Por favor, informe a URL e a Anon Key.');
+        }
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+
+        if (error) throw error;
+
+        if (data.user && data.session) {
+            const supaUser: User = {
+                id: data.user.id,
+                email: data.user.email || '',
+                name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Dev',
+                role: 'admin',
+                plan: 'pro',
+            };
+            login(data.session.access_token, supaUser);
+            toast.success('Login realizado com sucesso! Sincronizando com a nuvem...');
+            await cloudSync.download(data.user.id, false);
         }
     };
 
-    const refreshBranding = async () => {
-        if (!token || !user?.organization_id) {
-            setBranding(null);
+    const signUpWithSupabase = async (email: string, password: string, name?: string) => {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            throw new Error('Supabase não configurado. Por favor, informe a URL e a Anon Key.');
+        }
+
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    name: name || email.split('@')[0],
+                },
+            },
+        });
+
+        if (error) throw error;
+
+        if (data.session && data.user) {
+            const supaUser: User = {
+                id: data.user.id,
+                email: data.user.email || '',
+                name: name || data.user.email?.split('@')[0] || 'Dev',
+                role: 'admin',
+                plan: 'pro',
+            };
+            login(data.session.access_token, supaUser);
+            toast.success('Conta criada com sucesso! Enviando dados iniciais para a nuvem...');
+            await cloudSync.upload(data.user.id, true);
+        } else if (data.user && !data.session) {
+            toast.info('Cadastro realizado! Se a confirmação de e-mail estiver ativa no Supabase, verifique sua caixa de entrada.');
+        }
+
+        return data;
+    };
+
+    const signOut = async () => {
+        const supabase = getSupabaseClient();
+        if (supabase) {
+            try {
+                await supabase.auth.signOut();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        logout();
+        toast.info('Você saiu da sua conta. Retornando ao Modo Local.');
+    };
+
+    const syncCloudNow = async () => {
+        if (!isCloudConnected || user.id === DEFAULT_USER.id) {
+            toast.info('Faça login com sua conta para sincronizar na nuvem.');
             return;
         }
-        try {
-            const res = await fetch('/api/org/branding', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setBranding(data);
-                applyBranding(data);
-            }
-        } catch (error) {
-            console.error('Failed to fetch branding:', error);
-        }
+        await cloudSync.upload(user.id, false);
     };
 
     const updateProfile = async (updates: Partial<User>) => {
@@ -93,19 +233,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(newUser);
         localStorage.setItem('auth_user', JSON.stringify(newUser));
 
-        if (token && token !== 'local_direct_token') {
-            try {
-                await fetch('/api/auth/me', {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(updates)
-                });
-            } catch (error) {
-                console.error('Failed to update profile on backend:', error);
-            }
+        if (isCloudConnected) {
+            await cloudSync.upload(user.id, true);
         }
     };
 
@@ -115,42 +244,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(newUser);
         localStorage.setItem('auth_user', JSON.stringify(newUser));
 
-        if (token && token !== 'local_direct_token') {
-            try {
-                await fetch('/api/auth/billing/plan', {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ plan })
-                });
-            } catch (error) {
-                console.error('Failed to update plan on backend:', error);
-            }
+        if (isCloudConnected) {
+            await cloudSync.upload(user.id, true);
         }
     };
-
-    useEffect(() => {
-        const savedUser = localStorage.getItem('auth_user');
-        if (savedUser) {
-            try {
-                setUser(JSON.parse(savedUser));
-            } catch (e) {}
-        }
-        setIsLoading(false);
-    }, [token]);
-
-    useEffect(() => {
-        if (user?.organization_id && token && token !== 'local_direct_token') {
-            refreshBranding();
-        } else {
-            setBranding(null);
-            document.documentElement.style.removeProperty('--primary');
-            document.documentElement.style.removeProperty('--ring');
-            document.documentElement.style.removeProperty('--accent');
-        }
-    }, [user?.organization_id, token]);
 
     const login = (newToken: string, newUser: User) => {
         setToken(newToken);
@@ -167,20 +264,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem('auth_user');
     };
 
+    const refreshBranding = async () => {
+        // Optional
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
             token,
             isAuthenticated: true,
+            isCloudConnected,
             isAdmin: true,
             isOrgAdmin: true,
-            isLoading: false,
+            isLoading,
             branding,
             login,
             logout,
+            signInWithSupabase,
+            signUpWithSupabase,
+            signOut,
+            syncCloudNow,
+            saveSupabaseKeys,
             refreshBranding,
             updateProfile,
-            updatePlan
+            updatePlan,
         }}>
             {children}
         </AuthContext.Provider>

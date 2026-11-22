@@ -120,7 +120,7 @@ const categoryLabels: Record<string, string> = {
 
 export function ExtensionNavbar() {
   const { state, currentTab, setCurrentTab, theme, toggleTheme, setIsCommandPaletteOpen } = useApp();
-  const { isAuthenticated, user, logout, isAdmin, isOrgAdmin } = useAuth();
+  const { isAuthenticated, user, logout, signOut, isAdmin, isOrgAdmin, isCloudConnected, syncCloudNow } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [pendingCount, setPendingCount] = useState(0);
@@ -336,9 +336,39 @@ export function ExtensionNavbar() {
                   <User className="h-4 w-4 text-primary" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>Sua Conta</DropdownMenuLabel>
-                <div className="px-2 py-1.5 text-xs text-muted-foreground">{user?.email}</div>
+                <div className="px-2 py-1 text-xs text-muted-foreground font-mono truncate">{user?.email}</div>
+
+                {isCloudConnected ? (
+                  <div className="px-2 py-1 text-[11px] text-emerald-500 font-semibold flex items-center gap-1.5 bg-emerald-500/10 rounded mx-2 mb-1">
+                    <Cloud className="w-3.5 h-3.5" /> Nuvem Supabase Ativa
+                  </div>
+                ) : (
+                  <div className="px-2 py-1 text-[11px] text-amber-500 font-semibold flex items-center gap-1.5 bg-amber-500/10 rounded mx-2 mb-1">
+                    <CloudOff className="w-3.5 h-3.5" /> Modo Local (Offline)
+                  </div>
+                )}
+
+                <DropdownMenuSeparator />
+
+                {isCloudConnected ? (
+                  <DropdownMenuItem onClick={syncCloudNow} className="gap-2 cursor-pointer text-xs">
+                    <RefreshCw className="w-3.5 h-3.5 text-primary" />
+                    <span>Sincronizar Nuvem Agora</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => navigate('/auth')} className="gap-2 cursor-pointer text-xs font-semibold text-primary">
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Conectar Conta / Nuvem</span>
+                  </DropdownMenuItem>
+                )}
+
+                <DropdownMenuItem onClick={() => navigate('/auth')} className="gap-2 cursor-pointer text-xs">
+                  <Settings className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>Configurar Supabase</span>
+                </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setCurrentTab('profile')} className="gap-2 cursor-pointer">
                   <UserCircle className="h-4 w-4 text-primary" />
@@ -362,9 +392,9 @@ export function ExtensionNavbar() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-destructive gap-2 cursor-pointer">
+                <DropdownMenuItem onClick={signOut} className="text-destructive gap-2 cursor-pointer">
                   <LogOut className="h-4 w-4" />
-                  <span>Sair</span>
+                  <span>Sair da Conta</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

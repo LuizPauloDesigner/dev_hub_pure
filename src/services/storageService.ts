@@ -436,6 +436,19 @@ class StorageService {
       }
     }
 
+    // 3. Supabase Cloud Sync (auto-save entire workspace state if connected)
+    try {
+      const storedUser = localStorage.getItem('auth_user');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        if (parsed.id && parsed.id !== 'local_master_dev') {
+          import('./cloudSync').then(({ cloudSync }) => {
+            cloudSync.upload(parsed.id, true);
+          });
+        }
+      }
+    } catch (e) {}
+
     this.broadcast('local-update');
   }
 
