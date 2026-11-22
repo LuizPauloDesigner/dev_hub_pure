@@ -469,6 +469,124 @@ export interface BoardConnection {
   color?: string;
 }
 
+export interface EnglishFlashcard {
+  id: string;
+  projectId: string;
+  userId?: string;
+  term: string;               // Termo em destaque / Título
+  context: string;            // Contexto (Frente): trecho real ou adaptado da doc
+  practicalMeaning: string;   // Tradução / Sentido prático (Verso)
+  collocations: string[];     // Collocation / Uso comum
+  pitfall?: string;           // Armadilha / Falsos cognatos / Nuances (opcional)
+  category: string;           // ex: 'Backend', 'Arquitetura', 'Frontend', 'DevOps', 'Banco de Dados', 'Geral'
+  level?: 'basic' | 'intermediate' | 'advanced';
+  status: 'learning' | 'review' | 'mastered';
+  isFavorite?: boolean;
+  reviewCount: number;
+  lastReviewedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const INITIAL_FLASHCARDS: EnglishFlashcard[] = [
+  {
+    id: 'seed-card-1',
+    projectId: 'default',
+    term: 'fall back to',
+    context: 'If the downstream service times out, the worker falls back to cached data.',
+    practicalMeaning: 'Recorre a um plano/fonte alternativa ("faz fallback para...").',
+    collocations: ['fall back to', 'fallback mechanism', 'graceful degradation'],
+    pitfall: 'Time out como verbo/expressão aqui significa estourar o tempo limite, não "dar um tempo" de descanso.',
+    category: 'Backend',
+    level: 'intermediate',
+    status: 'learning',
+    isFavorite: true,
+    reviewCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'seed-card-2',
+    projectId: 'default',
+    term: 'eventual consistency',
+    context: 'Distributed NoSQL databases prioritize high availability and eventual consistency over immediate ACID locks.',
+    practicalMeaning: 'Consistência convergente ao longo do tempo após o término das replicações (não é instantânea).',
+    collocations: ['eventual consistency', 'strong consistency', 'CAP theorem', 'read repair'],
+    pitfall: '"Eventual" em inglês técnico NÃO significa "que ocorre por acaso/casual", mas sim "ao longo do tempo / que acontecerá no fim das contas".',
+    category: 'Banco de Dados',
+    level: 'advanced',
+    status: 'learning',
+    isFavorite: true,
+    reviewCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'seed-card-3',
+    projectId: 'default',
+    term: 'idempotent',
+    context: 'Ensure your payment webhook receivers are idempotent, as gateways may retry unacknowledged deliveries.',
+    practicalMeaning: 'Operação que pode ser executada repetidas vezes sem alterar o resultado além da primeira chamada.',
+    collocations: ['idempotent endpoint', 'idempotency key', 'safe methods'],
+    pitfall: 'Não confundir com "imutável" (immutable). Idempotente aceita novas requisições, mas garante o mesmo estado final.',
+    category: 'Arquitetura',
+    level: 'intermediate',
+    status: 'learning',
+    isFavorite: false,
+    reviewCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'seed-card-4',
+    projectId: 'default',
+    term: 'throttle / debounce',
+    context: 'The UI debounces search keystrokes while the API gateway throttles incoming requests to 100 req/min.',
+    practicalMeaning: 'Throttle limita a taxa de chamadas por janela de tempo; Debounce aguarda o usuário pausar para disparar.',
+    collocations: ['rate limiting', 'throttle requests', 'debounced search', 'burst capacity'],
+    pitfall: 'Throttle e debounce não são sinônimos: Throttle restringe a frequência contínua; debounce espera uma pausa para rodar uma só vez.',
+    category: 'Performance',
+    level: 'intermediate',
+    status: 'learning',
+    isFavorite: false,
+    reviewCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'seed-card-5',
+    projectId: 'default',
+    term: 'mitigate risk',
+    context: 'Adding circuit breakers will mitigate cascade failure risk across internal microservices.',
+    practicalMeaning: 'Atenuar, suavizar ou reduzir o impacto de um risco, falha ou gargalo.',
+    collocations: ['mitigate risk', 'mitigate performance bottleneck', 'mitigation strategy'],
+    pitfall: 'Mitigar não significa extinguir ou eliminar por completo, e sim diminuir a severidade para um nível seguro.',
+    category: 'Arquitetura',
+    level: 'basic',
+    status: 'learning',
+    isFavorite: false,
+    reviewCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'seed-card-6',
+    projectId: 'default',
+    term: 'overhead',
+    context: 'Using reflection in critical code paths adds unnecessary CPU and latency overhead.',
+    practicalMeaning: 'Custo adicional de recursos (processamento, memória ou tempo) necessário para executar uma tarefa.',
+    collocations: ['low overhead', 'performance overhead', 'memory footprint'],
+    pitfall: 'Não tem relação com cabeçalhos HTTP (headers), e sim com o "peso extra" operacional da solução.',
+    category: 'Performance',
+    level: 'basic',
+    status: 'learning',
+    isFavorite: false,
+    reviewCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
+
 export interface AppState {
   projects: Project[];
   notes: Note[];
@@ -525,6 +643,7 @@ export interface AppState {
   moodPixels: MoodPixel[];
   dreamBoard: DreamBoardItem[];
   boardConnections: BoardConnection[];
+  flashcards: EnglishFlashcard[];
 }
 
 interface AppContextType {
@@ -651,6 +770,11 @@ interface AppContextType {
   deleteBoardElement: (id: string) => void;
   addBoardConnection: (conn: Omit<BoardConnection, 'id'>) => void;
   deleteBoardConnection: (id: string) => void;
+  addFlashcard: (card: Omit<EnglishFlashcard, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount'>) => string;
+  updateFlashcard: (id: string, updates: Partial<EnglishFlashcard>) => void;
+  deleteFlashcard: (id: string) => void;
+  markFlashcardReviewed: (id: string, status: 'learning' | 'review' | 'mastered') => void;
+  toggleFlashcardFavorite: (id: string) => void;
   isLoading: boolean;
 }
 
@@ -727,7 +851,7 @@ const initialState: AppState = {
   },
   stockMaterials: [],
   techSheets: [],
-  enabledModules: ['dashboard', 'explorer', 'tutorial', 'wellness', 'musica', 'videos', 'favorites', 'notes', 'prompts', 'snippets', 'cheatsheet', 'kanban', 'checklists', 'passwords', 'contacts', 'orcamentos', 'precificador', 'estoque', 'fichatecnica', 'finance', 'diary', 'draft', 'settings', 'profile', 'billing', 'integrations', 'analytics', 'wiki', 'assets', 'activity', 'planner', 'boards', 'jarvis'],
+  enabledModules: ['dashboard', 'explorer', 'tutorial', 'wellness', 'musica', 'videos', 'favorites', 'notes', 'prompts', 'snippets', 'cheatsheet', 'kanban', 'checklists', 'passwords', 'contacts', 'orcamentos', 'precificador', 'estoque', 'fichatecnica', 'finance', 'diary', 'draft', 'settings', 'profile', 'billing', 'integrations', 'analytics', 'wiki', 'assets', 'activity', 'planner', 'boards', 'jarvis', 'flashcards'],
   notifications: [],
   integrations: [
     { id: 'github', provider: 'github', name: 'GitHub', description: 'Sincronize seus repositórios e gerencie issues diretamente do dashboard.', icon: 'Github', status: 'disconnected', category: 'dev', createdAt: new Date().toISOString() },
@@ -749,6 +873,7 @@ const initialState: AppState = {
   wheelOfLife: [],
   moodPixels: [],
   dreamBoard: [],
+  flashcards: INITIAL_FLASHCARDS,
 };
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
@@ -780,6 +905,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           if (!stateWithVideos.enabledModules.includes('boards')) {
             stateWithVideos.enabledModules = [...stateWithVideos.enabledModules, 'boards'];
           }
+          if (!stateWithVideos.enabledModules.includes('flashcards')) {
+            stateWithVideos.enabledModules = [...stateWithVideos.enabledModules, 'flashcards'];
+          }
+        }
+
+        if (!stateWithVideos.flashcards || stateWithVideos.flashcards.length === 0) {
+          stateWithVideos.flashcards = INITIAL_FLASHCARDS;
         }
 
         if (stateWithVideos.notifications && stateWithVideos.notifications.length === 0) {
@@ -826,6 +958,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const reloadedState = { ...loaded.state };
         if (!reloadedState.enabledModules.includes('boards')) {
           reloadedState.enabledModules = [...reloadedState.enabledModules, 'boards'];
+        }
+        if (!reloadedState.enabledModules.includes('flashcards')) {
+          reloadedState.enabledModules = [...reloadedState.enabledModules, 'flashcards'];
+        }
+        if (!reloadedState.flashcards || reloadedState.flashcards.length === 0) {
+          reloadedState.flashcards = INITIAL_FLASHCARDS;
         }
 
         setState(reloadedState);
@@ -1912,6 +2050,65 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setState(prev => ({ ...prev, boardConnections: prev.boardConnections.filter(c => c.id !== id) }));
   };
 
+  const addFlashcard = (card: Omit<EnglishFlashcard, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount'>) => {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const newCard: EnglishFlashcard = {
+      ...card,
+      id,
+      reviewCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setState(prev => ({
+      ...prev,
+      flashcards: [newCard, ...(prev.flashcards || [])],
+    }));
+    return id;
+  };
+
+  const updateFlashcard = (id: string, updates: Partial<EnglishFlashcard>) => {
+    setState(prev => ({
+      ...prev,
+      flashcards: (prev.flashcards || []).map(c => 
+        c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c
+      ),
+    }));
+  };
+
+  const deleteFlashcard = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      flashcards: (prev.flashcards || []).filter(c => c.id !== id),
+    }));
+  };
+
+  const markFlashcardReviewed = (id: string, status: 'learning' | 'review' | 'mastered') => {
+    setState(prev => ({
+      ...prev,
+      flashcards: (prev.flashcards || []).map(c => 
+        c.id === id 
+          ? { 
+              ...c, 
+              status, 
+              reviewCount: (c.reviewCount || 0) + 1, 
+              lastReviewedAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString() 
+            } 
+          : c
+      ),
+    }));
+  };
+
+  const toggleFlashcardFavorite = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      flashcards: (prev.flashcards || []).map(c => 
+        c.id === id ? { ...c, isFavorite: !c.isFavorite, updatedAt: new Date().toISOString() } : c
+      ),
+    }));
+  };
+
   // ── Memoized Context Value ──────────────────────────────────────────────
   const contextValue = useMemo(() => ({
     state,
@@ -2021,6 +2218,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     addBoard, updateBoard, deleteBoard,
     addBoardElement, updateBoardElement, deleteBoardElement,
     addBoardConnection, deleteBoardConnection,
+    addFlashcard, updateFlashcard, deleteFlashcard, markFlashcardReviewed, toggleFlashcardFavorite,
     isLoading
   }), [state, currentProject, currentTab, theme, searchQuery, isCommandPaletteOpen, isLoading]);
 

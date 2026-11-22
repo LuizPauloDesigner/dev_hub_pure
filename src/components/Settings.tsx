@@ -755,6 +755,7 @@ export const Settings = () => {
               { id: 'snippets', label: 'Snippets', protected: false },
               { id: 'cheatsheet', label: 'Cheatsheet', protected: false },
               { id: 'kanban', label: 'Kanban', protected: false },
+              { id: 'flashcards', label: 'Inglês Dev (Cards)', protected: false },
               { id: 'checklists', label: 'Listas Pessoais', protected: false },
               { id: 'passwords', label: 'Senhas', protected: false },
               { id: 'contacts', label: 'Contatos', protected: false },

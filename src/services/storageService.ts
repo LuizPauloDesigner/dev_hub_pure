@@ -56,6 +56,7 @@ export const ENTITY_MAP: EntityMapping[] = [
   { store: 'boards', get: (s) => s.boards },
   { store: 'boardElements', get: (s) => s.boardElements },
   { store: 'boardConnections', get: (s) => s.boardConnections },
+  { store: 'flashcards', get: (s) => s.flashcards || [] },
 ];
 
 // Settings keys that map directly from AppState
@@ -204,7 +205,7 @@ class StorageService {
         'dashboard', 'explorer', 'tutorial', 'wellness', 'musica', 'videos', 'favorites', 'notes',
         'prompts', 'snippets', 'cheatsheet', 'kanban', 'checklists',
         'passwords', 'contacts', 'orcamentos', 'precificador', 'estoque',
-        'fichatecnica', 'finance', 'diary', 'draft', 'settings', 'profile', 'billing', 'integrations', 'analytics', 'wiki', 'assets', 'activity', 'planner', 'boards'
+        'fichatecnica', 'finance', 'diary', 'draft', 'settings', 'profile', 'billing', 'integrations', 'analytics', 'wiki', 'assets', 'activity', 'planner', 'boards', 'flashcards'
       ],
       notifications: entityData.notifications || [],
       integrations: (settings as any).integrations || [
@@ -220,6 +221,7 @@ class StorageService {
       boards: entityData.boards || [],
       boardElements: entityData.boardElements || [],
       boardConnections: entityData.boardConnections || [],
+      flashcards: entityData.flashcards || [],
       encryptedPasswords: (settings as any).encryptedPasswords,
       encryptedFinancial: (settings as any).encryptedFinancial,
       encryptedContacts: (settings as any).encryptedContacts,

@@ -59,6 +59,7 @@ import {
   History,
   Target,
   Cpu,
+  Languages,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,6 +89,7 @@ const menuItems: MenuItem[] = [
   { id: 'snippets', label: 'Snippets', icon: Code, category: 'productivity' },
   { id: 'cheatsheet', label: 'Cheatsheet', icon: BookOpen, category: 'productivity' },
   { id: 'kanban', label: 'Kanban', icon: Columns, category: 'productivity' },
+  { id: 'flashcards', label: 'Inglês Dev (Cards)', icon: Languages, category: 'productivity' },
   { id: 'boards', label: 'Mural Criativo (Milanote)', icon: LayoutGrid, category: 'productivity' },
   { id: 'checklists', label: 'Listas', icon: ListChecks, category: 'personal' },
   { id: 'passwords', label: 'Senhas', icon: Lock, category: 'personal' },

@@ -43,11 +43,13 @@ import { ActivityLog } from '@/components/ActivityLog';
 import { Planner } from '@/components/Planner';
 import { Boards } from '@/components/Boards';
 import { JarvisMainframe } from '@/components/JarvisMainframe';
+import { EnglishFlashcards } from '@/components/EnglishFlashcards';
 
 // Component map for cleaner rendering
 const COMPONENT_MAP: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
   planner: Planner,
+  flashcards: EnglishFlashcards,
   explorer: ProjectExplorer,
   tutorial: Tutorial,
   favorites: Favorites,

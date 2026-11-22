@@ -47,9 +47,10 @@ const STORE_SCHEMAS: Record<string, StoreConfig> = {
   dreamBoard: { keyPath: 'id', indexes: [{ name: 'category', keyPath: 'category' }, { name: '_updated', keyPath: '_updated' }] },
   boards: { keyPath: 'id', indexes: [{ name: 'projectId', keyPath: 'projectId' }, { name: '_updated', keyPath: '_updated' }] },
   boardElements: { keyPath: 'id', indexes: [{ name: 'boardId', keyPath: 'boardId' }, { name: '_updated', keyPath: '_updated' }] },
+  flashcards: { keyPath: 'id', indexes: [{ name: 'projectId', keyPath: 'projectId' }, { name: 'category', keyPath: 'category' }, { name: '_updated', keyPath: '_updated' }] },
 };
 
-const DB_VERSION = 7; // Incremented for Milanote-like boards
+const DB_VERSION = 8; // Incremented for English Flashcards module
 const DB_NAME = 'devCenterDB';
 
 class DevCenterDB {
